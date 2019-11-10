@@ -1,0 +1,5 @@
+aiohttp
+black
+pylint
+pytest
+pytest-asyncio
