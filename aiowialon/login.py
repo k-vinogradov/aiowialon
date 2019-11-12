@@ -98,22 +98,12 @@ class Session:
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         self.client_session = ClientSession(headers=headers)
         try:
-            session_info = await self.call("token/login", token=self.token)
-            LOGGER.debug(
-                "User %s logged in to %s (sid %s)",
-                session_info["user"]["nm"],
-                session_info["host"],
-                session_info["eid"],
-            )
-            self.sid = session_info["eid"]
-            self.username = session_info["user"]["nm"]
-            self.user_id = session_info["user"]["id"]
-            self.account_id = session_info["user"]["bact"]
-            self.session_info = session_info
-            return self
+            await self._login()
         except Exception as exp:
             await self.client_session.close()
             raise exp
+        else:
+            return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         try:
@@ -125,6 +115,20 @@ class Session:
                 raise exp
         finally:
             await self.client_session.close()
+
+    async def _login(self):
+        session_info = await self.call("token/login", token=self.token)
+        LOGGER.debug(
+            "User %s logged in to %s (sid %s)",
+            session_info["user"]["nm"],
+            session_info["host"],
+            session_info["eid"],
+        )
+        self.sid = session_info["eid"]
+        self.username = session_info["user"]["nm"]
+        self.user_id = session_info["user"]["id"]
+        self.account_id = session_info["user"]["bact"]
+        self.session_info = session_info
 
     async def call(self, method: str, **kwargs):
         """Execute Wialon RemoteAPI method
