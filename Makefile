@@ -6,3 +6,4 @@ check-code-quality:
 	black --check --diff aiowialon
 
 test: check-code-quality
+	python -m pytest -v

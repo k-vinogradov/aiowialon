@@ -6,7 +6,7 @@ from aiowialon.flags import join, Units
 from aiowialon import Session
 
 
-async def request_units(session: Session, flags=None) -> list:
+async def load_units(session: Session, flags=None) -> list:
     """Request the unit list by calling search_items method
 
     Arguments:
@@ -17,18 +17,20 @@ async def request_units(session: Session, flags=None) -> list:
         list -- unit list
     """
     flags = flags or {Units.GENERAL_PROPERTIES}
-    params = {
-        "spec": {
-            "itemsType": "avl_unit",
-            "propName": "sys_name",
-            "propValueMask": "*",
-            "propType": "list",
-            "sortType": "sys_name",
+    response = await session.call(
+        "core/search_items",
+        {
+            "spec": {
+                "itemsType": "avl_unit",
+                "propName": "sys_name",
+                "propValueMask": "*",
+                "propType": "list",
+                "sortType": "sys_name",
+            },
+            "force": 1,
+            "flags": join(flags),
+            "from": 0,
+            "to": 0,
         },
-        "force": 1,
-        "flags": join(flags),
-        "from": 0,
-        "to": 0,
-    }
-    response = await session.call("core/search_items", **params)
+    )
     return response["items"]
