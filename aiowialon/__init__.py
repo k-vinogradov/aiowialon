@@ -1,6 +1,6 @@
 import logging
 
-from aiowialon.client import Session, connect
+from aiowialon.client import Session, connect, APIError
 
 logging.getLogger(__name__).setLevel(logging.DEBUG)
 

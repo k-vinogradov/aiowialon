@@ -4,3 +4,6 @@ pylint
 pytest
 pytest-asyncio
 MechanicalSoup
+setuptools
+wheel
+twine

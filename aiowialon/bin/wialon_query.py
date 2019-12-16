@@ -27,7 +27,7 @@ def get_access_token():
     return os.environ[ACCESS_TOKEN_VAR]
 
 
-async def main(filepath: str, verbose: bool):
+async def main_task(filepath: str, verbose: bool):
     configure_logger(verbose)
     config = yaml.safe_load(filepath)
     print("\n*** REQUEST ***\n")
@@ -53,5 +53,9 @@ async def request(access_token: str, svc: str, params: dict = None):
         return await session.call(svc, params)
 
 
+def main():
+    asyncio.run(main_task(**parse_args()))
+
+
 if __name__ == "__main__":
-    asyncio.run(main(**parse_args()))
+    main()

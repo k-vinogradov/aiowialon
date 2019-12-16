@@ -41,6 +41,7 @@ class APIError(RuntimeError):
     """ General API client error. """
 
     def __init__(self, sid: str, code: int, reason: str):
+        super().__init__()
         self.code = code
         self.description = ERROR_CODES.get(code, "Unknown error")
         self.reason = (
@@ -52,7 +53,6 @@ class APIError(RuntimeError):
         else:
             self.message = f"{self.description}"
         LOGGER.error("Wialon API error: %s (sid %s)", self, sid)
-        RuntimeError.__init__(self)
 
     def __str__(self):
         return self.message
@@ -66,7 +66,13 @@ class InvalidInput(APIError):
     """ Invalid API input error """
 
 
-CODE_TO_EXCEPTION_MAP = {4: InvalidInput, 7: AuthError, 8: AuthError, 9: AuthError}
+CODE_TO_EXCEPTION_MAP = {
+    1: AuthError,
+    4: InvalidInput,
+    7: AuthError,
+    8: AuthError,
+    9: AuthError,
+}
 
 
 def get_error(error_code: int) -> APIError:
