@@ -1,7 +1,10 @@
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List
+from typing import List, Tuple
+from shapely.geometry import Point, Polygon
 from aiowialon.flags import Resources, join
 from aiowialon.client import Session
+from aiowialon.utils import distance
 
 
 class AreaFlags(Enum):
@@ -14,11 +17,119 @@ class AreaFlags(Enum):
     BASE = 0x10
 
 
-async def load_areas(session: Session) -> list:
-    """Load available geofence list
+class AreaType(Enum):
+    """ Wialon area types """
+
+    LINE = 1
+    POLYGON = 2
+    CIRCLE = 3
+
+
+class Area(ABC):
+    """ Wialon area (geofence) """
+
+    def __init__(self, data, session=None):
+        self.data = data
+        self.session = session
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, type(self))
+            and self.id() == other.id()
+            and self.resource_id() == other.resource_id()
+        )
+
+    def __str__(self):
+        return "{} ({})".format(self.name(), self.description())
+
+    def id(self) -> int:
+        return self.data["id"]
+
+    def resource_id(self) -> int:
+        return self.data["rid"]
+
+    def name(self) -> str:
+        return self.data["n"]
+
+    def description(self) -> str:
+        return self.data["d"]
+
+    @abstractmethod
+    def area_type(self) -> AreaType:
+        pass
+
+    def is_line(self) -> bool:
+        return self.area_type() == AreaType.LINE
+
+    def is_circle(self) -> bool:
+        return self.area_type() == AreaType.CIRCLE
+
+    def is_polygon(self) -> bool:
+        return self.area_type() == AreaType.POLYGON
+
+    @abstractmethod
+    def contains(self, latitude, longitude) -> bool:
+        pass
+
+
+class CircleArea(Area):
+    def area_type(self):
+        return AreaType.CIRCLE
+
+    def contains(self, latitude, longitude):
+        return distance(latitude, longitude, *self.location()) <= self.radius()
+
+    def radius(self) -> float:
+        return self.data["p"][0]["r"]
+
+    def location(self) -> Tuple[float, float]:
+        return self.data["p"][0]["y"], self.data["p"][0]["x"]
+
+
+class PolygonArea(Area):
+    def area_type(self):
+        return AreaType.POLYGON
+
+    def contains(self, latitude, longitude) -> bool:
+        point = Point(latitude, longitude)
+        polygon = Polygon(self.points())
+        return polygon.contains(point)
+
+    def points(self) -> List[Tuple[float, float]]:
+        return [(p["y"], p["x"]) for p in self.data["p"]]
+
+
+def build_area(data):
+    area_type = AreaType(data["t"])
+    if area_type == AreaType.CIRCLE:
+        return CircleArea(data)
+    if area_type == AreaType.POLYGON:
+        return PolygonArea(data)
+    raise ValueError(f"Unsupported area type: {area_type.name()}")
+
+
+async def load_areas(session: Session) -> List[Area]:
+    """Load available area list
 
     Arguments:
         session {Session} -- active user session
+
+    Returns:
+        List[Area] -- Area instance list
+    """
+    return [
+        build_area(item) for item in await load_areas_raw(session, load_detail=True)
+    ]
+
+
+async def load_areas_raw(session: Session, load_detail: bool = False) -> list:
+    """Load available geofence raw info list
+
+    Arguments:
+        session {Session} -- active user session
+
+    Keyword Arguments:
+        load_detail {bool} -- include area detail info (default: {False})
 
     Returns:
         list -- geofence list
@@ -39,10 +150,19 @@ async def load_areas(session: Session) -> list:
             "to": 0,
         },
     )
+
+    if not load_detail:
+        return [
+            {"rid": resource["id"], **area}
+            for resource in response["items"]
+            for area in resource["zl"].values()
+        ]
+
     result = []
     for resource in response["items"]:
-        for area in resource["zl"].values():
-            result.append({"rid": resource["id"], **area})
+        areas = [area["id"] for area in resource["zl"].values()]
+        areas_detail = await get_areas_detail_raw(session, areas, resource["id"])
+        result.extend(areas_detail.values())
     return result
 
 
@@ -93,7 +213,7 @@ async def search_areas_by_point(  # pylint: disable=too-many-arguments
 
     if area_detail:
         area_id_list = [item[0]["id"] for item in result]
-        detail = await get_areas_detail(session, area_id_list)
+        detail = await get_areas_detail_raw(session, area_id_list)
         for item in result:
             area_id = item[0]["id"]
             item[0].update(detail[area_id])
@@ -106,8 +226,24 @@ async def get_areas_detail(
     area_id_list: List[int],
     resource: int = None,
     flags: List[AreaFlags] = None,
+):
+    return {
+        area_id: build_area(data)
+        for area_id, data in (
+            await get_areas_detail_raw(
+                session, area_id_list=area_id_list, resource=resource, flags=flags
+            )
+        ).items()
+    }
+
+
+async def get_areas_detail_raw(
+    session: Session,
+    area_id_list: List[int],
+    resource: int = None,
+    flags: List[AreaFlags] = None,
 ) -> dict:
-    """Query the areas info
+    """Query the areas raw info
 
     Arguments:
         session {Session} -- active API session
@@ -145,6 +281,7 @@ async def get_area_detail(
     Returns:
         dict -- key-value dictionary area_id -> area_detail
     """
-    return (await get_areas_detail(session, [area_id], resource=resource, flags=flags))[
-        area_id
-    ]
+    return (
+        await get_areas_detail_raw(session, [area_id], resource=resource, flags=flags)
+    )[area_id]
+
