@@ -19,18 +19,6 @@ def timestamp(date: Union[datetime, int, float]) -> int:
     return int(date.timestamp())
 
 
-# def date_time(timestamp: int) -> datetime:
-#     """Convert POSIX timestamp to the datetime instance
-
-#     Arguments:
-#         timestamp {int} -- POSIX timestamp
-
-#     Returns:
-#         datetime -- datetime instance
-#     """
-#     return datetime.utcfromtimestamp(timestamp)
-
-
 # pylint: disable=too-many-arguments
 async def _call_load_messages(
     session: Session,
