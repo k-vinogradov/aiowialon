@@ -2,6 +2,10 @@
 
 Wialon Remote API async client
 
+## Install
+
+    pip install aiowialon
+
 ## Connection and Login
 
 ```python
