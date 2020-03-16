@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 from shapely.geometry import Point, Polygon
 from aiowialon.flags import Resources, join
 from aiowialon.client import Session
@@ -42,6 +42,14 @@ class Area(ABC):
     def __str__(self):
         return "{} ({})".format(self.name(), self.description())
 
+    @abstractmethod
+    def area_type(self) -> AreaType:
+        pass
+
+    @abstractmethod
+    def contains(self, latitude, longitude) -> bool:
+        pass
+
     def id(self) -> int:
         return self.data["id"]
 
@@ -54,10 +62,6 @@ class Area(ABC):
     def description(self) -> str:
         return self.data["d"]
 
-    @abstractmethod
-    def area_type(self) -> AreaType:
-        pass
-
     def is_line(self) -> bool:
         return self.area_type() == AreaType.LINE
 
@@ -66,10 +70,6 @@ class Area(ABC):
 
     def is_polygon(self) -> bool:
         return self.area_type() == AreaType.POLYGON
-
-    @abstractmethod
-    def contains(self, latitude, longitude) -> bool:
-        pass
 
 
 class CircleArea(Area):
@@ -223,7 +223,7 @@ async def search_areas_by_point(  # pylint: disable=too-many-arguments
 
 async def get_areas_detail(
     session: Session,
-    area_id_list: List[int],
+    area_id_list: Iterable[int],
     resource: int = None,
     flags: List[AreaFlags] = None,
 ):
@@ -239,7 +239,7 @@ async def get_areas_detail(
 
 async def get_areas_detail_raw(
     session: Session,
-    area_id_list: List[int],
+    area_id_list: Iterable[int],
     resource: int = None,
     flags: List[AreaFlags] = None,
 ) -> dict:
@@ -260,7 +260,7 @@ async def get_areas_detail_raw(
     resource = resource or session.account_id
     response = await session.call(
         "resource/get_zone_data",
-        {"itemId": resource, "col": area_id_list, "flag": join(flags)},
+        {"itemId": resource, "col": list(area_id_list), "flag": join(flags)},
     )
     return {area["id"]: area for area in response}
 

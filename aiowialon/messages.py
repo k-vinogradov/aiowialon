@@ -1,7 +1,8 @@
 from datetime import datetime
+from itertools import zip_longest
 from typing import Union
 from aiowialon.client import Session
-from aiowialon.extensions import InvalidInput
+from aiowialon.exceptions import InvalidInput
 from aiowialon.flags import Messages, join
 
 
@@ -19,16 +20,15 @@ def timestamp(date: Union[datetime, int, float]) -> int:
     return int(date.timestamp())
 
 
-# def date_time(timestamp: int) -> datetime:
-#     """Convert POSIX timestamp to the datetime instance
+class MessageLoader:
+    def __init__(self, session: Session):
+        self.session = session
 
-#     Arguments:
-#         timestamp {int} -- POSIX timestamp
+    async def __aenter__(self):
+        return self.session
 
-#     Returns:
-#         datetime -- datetime instance
-#     """
-#     return datetime.utcfromtimestamp(timestamp)
+    async def __aexit__(self, *_):
+        await self.session.call("messages/unload")
 
 
 # pylint: disable=too-many-arguments
@@ -81,17 +81,19 @@ async def get_messages_count(
     Returns:
         int -- the number of messages
     """
-    return (
-        await _call_load_messages(
-            session,
-            item_id,
-            begin_time,
-            end_time,
-            flags or {Messages.DATA},
-            flag_mask,
-            0,
+    async with MessageLoader(session) as loader:  # type: Session
+        response = await loader.call(
+            "messages/load_interval",
+            {
+                "itemId": item_id,
+                "timeFrom": timestamp(begin_time),
+                "timeTo": timestamp(end_time),
+                "flags": join(flags or {Messages.DATA}),
+                "flagsMask": flag_mask,
+                "loadCount": 0,
+            },
         )
-    )["count"]
+        return response["count"]
 
 
 async def load_messages(
@@ -102,6 +104,7 @@ async def load_messages(
     flags: set = None,
     flag_mask: int = 0xFF00,
     count: int = 0xFFFFFFFF,
+    include_sensor_data=False,
 ) -> list:
     """Load the messages received during the time interval.
 
@@ -119,17 +122,35 @@ async def load_messages(
     Returns:
         list -- message list
     """
-    return (
-        await _call_load_messages(
-            session,
-            item_id,
-            begin_time,
-            end_time,
-            flags or {Messages.DATA},
-            flag_mask,
-            count,
+    async with MessageLoader(session) as loader:  # type: Session
+        response = await loader.call(
+            "messages/load_interval",
+            {
+                "itemId": item_id,
+                "timeFrom": timestamp(begin_time),
+                "timeTo": timestamp(end_time),
+                "flags": join(flags or {Messages.DATA}),
+                "flagsMask": flag_mask,
+                "loadCount": count,
+            },
         )
-    )["messages"]
+        messages = response["messages"]
+
+        if include_sensor_data:
+            sensors = await loader.call(
+                "unit/calc_sensors",
+                {
+                    "source": "",
+                    "indexFrom": 0,
+                    "indexTo": response["count"] - 1,
+                    "unitId": item_id,
+                    "sensorId": 0,
+                },
+            )
+            for message, sensor_data in zip_longest(messages, sensors):
+                message["sensor_data"] = sensor_data
+
+        return messages
 
 
 # pylint: enable=too-many-arguments

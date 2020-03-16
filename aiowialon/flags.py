@@ -8,7 +8,15 @@ def join(flags: Set[Enum]) -> int:
     return reduce(lambda acc, flag: acc | flag.value, flags, 0)
 
 
-class Units(Enum):
+class Flags(Enum):
+    """ Abstract flags class to implement some methods """
+
+    def check(self, flags):
+        """ Check if the `self` flag is enabled for passed argument """
+        return bool(flags & self.value)
+
+
+class Units(Flags):
     """ Units queries flags"""
 
     GENERAL_PROPERTIES = 0x00000001
@@ -24,7 +32,7 @@ class Units(Enum):
     POSSITION = 0x00400000
 
 
-class Messages(Enum):
+class Messages(Flags):
     """ Messages queries flags """
 
     DATA = 0x0000
@@ -34,7 +42,7 @@ class Messages(Enum):
     LOG = 0x1000
 
 
-class DataMessageExtensions(Enum):
+class DataMessageExtensions(Flags):
     """ Data message extension flags """
 
     POSITION = 0x01
@@ -46,7 +54,7 @@ class DataMessageExtensions(Enum):
     LBS = 0x20000
 
 
-class EventMessageExtension(Enum):
+class EventMessageExtension(Flags):
     """ Event message extension flags """
 
     SIMPLE = 0x0
@@ -55,7 +63,7 @@ class EventMessageExtension(Enum):
     ROUTE_CONTROL = 0x4
 
 
-class Resources(Enum):
+class Resources(Flags):
     """ Resource data flags """
 
     BASE = 0x00000001

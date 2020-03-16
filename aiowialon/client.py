@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from logging import getLogger
 from aiohttp import ClientSession
-from aiowialon.extensions import APIError, get_error
+from aiowialon.exceptions import APIError, get_error
 
 DEFAULT_API_HOST = "http://hst-api.wialon.com"
 DEFAULT_API_PATH = "/wialon/ajax.html"
@@ -21,11 +21,7 @@ class Session:
     # pylint: disable=bad-continuation,too-many-instance-attributes
 
     def __init__(
-        self,
-        token: str,
-        host: str = DEFAULT_API_HOST,
-        path: str = DEFAULT_API_PATH,
-        timeout=None,
+        self, token: str, host: str = DEFAULT_API_HOST, path: str = DEFAULT_API_PATH, timeout=None,
     ):
         self.token = token
         self.host = host
@@ -80,11 +76,7 @@ class Session:
                 datetime=datetime.now().strftime("%Y%m%d%H%M%S"),
             )
             data = {
-                "request": {
-                    "method": method,
-                    "params": params,
-                    "query": full_param_set,
-                },
+                "request": {"method": method, "params": params, "query": full_param_set,},
                 "response": content,
             }
             counter = 0

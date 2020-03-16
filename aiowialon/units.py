@@ -2,21 +2,22 @@
     used as shortcuts for the most commonly used methods
     of the Wialon API.
 """
+from typing import Optional, Iterable
 from aiowialon.flags import join, Units
 from aiowialon import Session
 
 
-async def load_units(session: Session, flags=None) -> list:
+async def load_units(session: Session, flags: Optional[Iterable] = None) -> list:
     """Request the unit list by calling search_items method
 
     Arguments:
         session {Session} -- current active session
-        flags {Set[Units]} -- data representing flag set (default: {Units.GENERAL_PROPERTIES})
+        flags {Optional[Iterable]} -- data representing flag set (default: {Units.GENERAL_PROPERTIES})
 
     Returns:
         list -- unit list
     """
-    flags = flags or {Units.GENERAL_PROPERTIES}
+    flags = set(flags) or {Units.GENERAL_PROPERTIES}
     response = await session.call(
         "core/search_items",
         {

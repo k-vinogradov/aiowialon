@@ -44,9 +44,7 @@ class APIError(RuntimeError):
         super().__init__()
         self.code = code
         self.description = ERROR_CODES.get(code, "Unknown error")
-        self.reason = (
-            reason or self.description
-        )  # because of the 'reason' field is optional
+        self.reason = reason or self.description  # because of the 'reason' field is optional
         self.sid = sid
         if reason:
             self.message = f"{self.description}: {reason}"
