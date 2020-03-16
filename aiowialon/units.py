@@ -12,12 +12,15 @@ async def load_units(session: Session, flags: Optional[Iterable] = None) -> list
 
     Arguments:
         session {Session} -- current active session
-        flags {Optional[Iterable]} -- data representing flag set (default: {Units.GENERAL_PROPERTIES})
+        flags {Optional[Iterable]} -- data representing flag set (default: None)
 
     Returns:
         list -- unit list
     """
-    flags = set(flags) or {Units.GENERAL_PROPERTIES}
+    if flags is None:
+        flags = {Units.GENERAL_PROPERTIES}
+    else:
+        flags = set(flags)
     response = await session.call(
         "core/search_items",
         {

@@ -117,9 +117,7 @@ async def load_areas(session: Session) -> List[Area]:
     Returns:
         List[Area] -- Area instance list
     """
-    return [
-        build_area(item) for item in await load_areas_raw(session, load_detail=True)
-    ]
+    return [build_area(item) for item in await load_areas_raw(session, load_detail=True)]
 
 
 async def load_areas_raw(session: Session, load_detail: bool = False) -> list:
@@ -194,22 +192,12 @@ async def search_areas_by_point(  # pylint: disable=too-many-arguments
     resource = resource or session.account_id
     responce = await session.call(
         "resource/get_zones_by_point",
-        {
-            "spec": {
-                "zoneId": {resource: []},
-                "lat": latitude,
-                "lon": longitude,
-                "radius": radius,
-            }
-        },
+        {"spec": {"zoneId": {resource: []}, "lat": latitude, "lon": longitude, "radius": radius,}},
     )
     if not responce:
         return []
 
-    result = [
-        ({"id": int(gid)}, distance)
-        for gid, distance in responce[str(resource)].items()
-    ]
+    result = [({"id": int(gid)}, distance) for gid, distance in responce[str(resource)].items()]
 
     if area_detail:
         area_id_list = [item[0]["id"] for item in result]
@@ -281,7 +269,4 @@ async def get_area_detail(
     Returns:
         dict -- key-value dictionary area_id -> area_detail
     """
-    return (
-        await get_areas_detail_raw(session, [area_id], resource=resource, flags=flags)
-    )[area_id]
-
+    return (await get_areas_detail_raw(session, [area_id], resource=resource, flags=flags))[area_id]

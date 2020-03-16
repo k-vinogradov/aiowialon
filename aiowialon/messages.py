@@ -21,6 +21,8 @@ def timestamp(date: Union[datetime, int, float]) -> int:
 
 
 class MessageLoader:
+    """ Context messager to clean up the message loader after requests """
+
     def __init__(self, session: Session):
         self.session = session
 
