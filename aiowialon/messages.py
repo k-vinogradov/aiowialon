@@ -1,9 +1,12 @@
 from datetime import datetime
 from itertools import zip_longest
+from logging import getLogger
 from typing import Union
 from aiowialon.client import Session
 from aiowialon.exceptions import InvalidInput
 from aiowialon.flags import Messages, join
+
+LOGGER = getLogger(__name__)
 
 
 def timestamp(date: Union[datetime, int, float]) -> int:
@@ -137,7 +140,7 @@ async def load_messages(
             },
         )
         messages = response["messages"]
-
+        LOGGER.debug("Message loaded by unit ID %d: %d", item_id, len(messages))
         if include_sensor_data:
             sensors = await loader.call(
                 "unit/calc_sensors",
@@ -149,6 +152,12 @@ async def load_messages(
                     "sensorId": 0,
                 },
             )
+            if len(messages) != len(sensors):
+                raise ValueError(
+                    "Invalid data length. {} sensors data items has got for {} messages".format(
+                        len(sensors), len(messages)
+                    )
+                )
             for message, sensor_data in zip_longest(messages, sensors):
                 message["sensor_data"] = sensor_data
 
