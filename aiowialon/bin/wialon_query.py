@@ -39,9 +39,7 @@ async def main_task(filepath: str, verbose: bool):
 
 def parse_args() -> dict:
     parser = argparse.ArgumentParser(description="Send Wialon Remote API Request")
-    parser.add_argument(
-        "filepath", type=argparse.FileType("r"), help="Config YAML file path"
-    )
+    parser.add_argument("filepath", type=argparse.FileType("r"), help="Config YAML file path")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     args = parser.parse_args()
     return vars(args)

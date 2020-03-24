@@ -15,7 +15,7 @@ def get_requirements():
 
 setuptools.setup(
     name="aiowialon",  # Replace with your own username
-    version="0.0.2b",
+    version="0.0.3b",
     author="Konstantin Vinogradov",
     author_email="mail@k-vinogradov.ru",
     description="A small example package",

@@ -5,7 +5,7 @@ install-dev: requirements-dev.txt
 
 check-code-quality:
 	pylint aiowialon
-	black --check --diff aiowialon
+	black --check --diff --line-length 100 aiowialon
 
 test: check-code-quality
 	python -m pytest -v

@@ -15,6 +15,5 @@ def get_account_data(session: Session) -> Coroutine:
         Coroutine -- coroutine returning account info dictionary
     """
     return session.call(
-        "account/get_account_data",
-        {"itemId": session.account_id, "type": MINIMAL_ACCOUNT_INFO},
+        "account/get_account_data", {"itemId": session.account_id, "type": MINIMAL_ACCOUNT_INFO},
     )

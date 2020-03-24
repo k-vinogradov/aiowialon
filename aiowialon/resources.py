@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Dict
 from shapely.geometry import Point, Polygon
 from aiowialon.flags import Resources, join
 from aiowialon.client import Session
@@ -44,35 +44,54 @@ class Area(ABC):
 
     @abstractmethod
     def area_type(self) -> AreaType:
-        pass
+        """ Get Area type """
+        raise NotImplementedError()
 
     @abstractmethod
     def contains(self, latitude, longitude) -> bool:
-        pass
+        """Check if the area contains the point with given coordinates
 
-    def id(self) -> int:
+        Arguments:
+            latitude {float} -- point latitude
+            longitude {float} -- point longitude
+
+        Returns:
+            bool -- True if the point belongs to the area
+        """
+        raise NotImplementedError()
+
+    def id(self) -> int:  # pylint: disable=invalid-name
+        """ Get area ID """
         return self.data["id"]
 
     def resource_id(self) -> int:
+        """ Get area parent resource ID """
         return self.data["rid"]
 
     def name(self) -> str:
+        """ Get area name """
         return self.data["n"]
 
     def description(self) -> str:
+        """ Get area description """
         return self.data["d"]
 
     def is_line(self) -> bool:
+        """ Check if the area is a line """
         return self.area_type() == AreaType.LINE
 
     def is_circle(self) -> bool:
+        """ Check if the ara is a circle """
         return self.area_type() == AreaType.CIRCLE
 
     def is_polygon(self) -> bool:
+        """ Check if the area is a polygon """
         return self.area_type() == AreaType.POLYGON
 
 
 class CircleArea(Area):
+    """ Circale Area Class """
+
     def area_type(self):
         return AreaType.CIRCLE
 
@@ -80,13 +99,21 @@ class CircleArea(Area):
         return distance(latitude, longitude, *self.location()) <= self.radius()
 
     def radius(self) -> float:
+        """ Get circle area radius """
         return self.data["p"][0]["r"]
 
     def location(self) -> Tuple[float, float]:
+        """ Get the area latitude and longitude
+
+        Returns:
+            Tuple[float, float] -- coordinates of the area central point
+        """
         return self.data["p"][0]["y"], self.data["p"][0]["x"]
 
 
 class PolygonArea(Area):
+    """ Polygon Area Class """
+
     def area_type(self):
         return AreaType.POLYGON
 
@@ -96,10 +123,23 @@ class PolygonArea(Area):
         return polygon.contains(point)
 
     def points(self) -> List[Tuple[float, float]]:
+        """Get area point array
+
+        Returns:
+            List[Tuple[float, float]] -- area point list
+        """
         return [(p["y"], p["x"]) for p in self.data["p"]]
 
 
-def build_area(data):
+def build_area(data) -> Area:
+    """Area object builder
+
+    Arguments:
+        data {dict} -- area data from the Wialon remote API
+
+    Returns:
+        Area -- area instance
+    """
     area_type = AreaType(data["t"])
     if area_type == AreaType.CIRCLE:
         return CircleArea(data)
@@ -214,7 +254,20 @@ async def get_areas_detail(
     area_id_list: Iterable[int],
     resource: int = None,
     flags: List[AreaFlags] = None,
-):
+) -> Dict[int, Area]:
+    """Query the areas detail info
+
+    Arguments:
+        session {Session} -- active API session
+        area_id_list {List[int]} -- area ID list
+
+    Keyword Arguments:
+        resource {int} -- owner resource ID, if None user acccount ID is used (default: None)
+        flags {List[AreaFlags]} -- area data flags (default: [AreaFlags.BASE])
+
+    Returns:
+        Dict[int, Area] -- key value pairs area_id -> area_info
+    """
     return {
         area_id: build_area(data)
         for area_id, data in (
